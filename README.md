@@ -60,7 +60,7 @@ This script serves as a basic CLI parser for sflowtool to provide per interface 
 
 ###Filtering flows by negated vlan and output in JSON
 
-    sflowtool -p 6341 -l | php /scripts/sflow.php --type cntr --filter 'in_vlan:!10' --json
+    sflowtool -p 6341 -l | php /scripts/sflow.php --type flow --filter 'in_vlan:!10' --json
 
     Collecting flows, polling interval 2s
     {
@@ -87,7 +87,7 @@ This script serves as a basic CLI parser for sflowtool to provide per interface 
 
 ###Filtering flows by negated device regex and regex input port and output in JSON
 
-    sflowtool -p 6341 -l | php /scripts/sflow.php --type cntr --filter 'device:!.*14,input_port:^55' --json
+    sflowtool -p 6341 -l | php /scripts/sflow.php --type flow --filter 'device:!.*14,input_port:^55' --json
 
     Collecting flows, polling interval 2s
     {
