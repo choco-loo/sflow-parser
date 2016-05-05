@@ -1,3 +1,5 @@
+# sflow-parser
+
 This script serves as a basic CLI parser for sflowtool to provide per interface rates and flow calcuation. It was originally made just to verify the sflow counter data was in fact correct.
 
 ##Options
@@ -16,7 +18,7 @@ This script serves as a basic CLI parser for sflowtool to provide per interface 
 ###Filtering counters by interface and device
 
     sflowtool -p 6341 -l | php /scripts/sflow.php --type cntr --device 10.0.0.1 --interface 19
-    
+
     Collecting flows, polling interval 5s
     IP           Interface                  In                         Out
     10.0.0.1     19                3.21 Mb/s     3 kpps      96.33 Mb/s     9 kpps

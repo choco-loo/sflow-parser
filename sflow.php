@@ -3,7 +3,7 @@
     class Sflow
     {
 
-        const INTERVAL = 5;
+        const INTERVAL = 2;
 
         private $flows = [];
         private $counters = [];
@@ -69,7 +69,6 @@
 
         private function processFlow($values)
         {
-            return;
             $keys = [ 'device', 'input_port', 'output_port', 'src_mac', 'dst_mac', 'ethernet_type', 'in_vlan', 'out_vlan', 'src_ip', 'dst_ip', 'ip_protocol', 'ip_tos', 'ip_ttl', 'src_port_or_icmp_type', 'dst_port_or_icmp_code', 'tcp_flags', 'packet_size', 'ip_size', 'sampling_rate' ];
 
             $data = array_combine($keys, $values);
@@ -77,23 +76,33 @@
             if (!isset($this->flows[$data['device']]))
                 $this->flows[$data['device']] = [ 'bits' => [] ];
 
-            if (!$this->filterDevice($data) || !$this->filterFlow($data))
+            if (!$this->filterDevice($data) || !$this->filterFlow($data) || !$this->filterPort($data))
                 return;
 
-            $modulus = date('s') % self::INTERVAL;
+            $mt = microtime(true);
 
-            if ($modulus !== 0 || $this->collect) {
-                $this->flows[$data['device']]['bits'][] = $data['packet_size'] * $data['sampling_rate'];
-                if ($modulus !== 0)
-                    $this->collect = false;
+            if (!isset($this->flows[$data['device']]['start']))
+                $this->flows[$data['device']]['start'] = $mt;
+
+            $this->flows[$data['device']]['bits'][] = $data['packet_size'] * $data['sampling_rate'] * 8;
+
+            if ($mt - $this->flows[$data['device']]['start'] <= self::INTERVAL || count($this->flows[$data['device']]['bits']) <= 5)
                 return;
-            }
 
-            $flowps = count($this->flows[$data['device']]['bits']) / self::INTERVAL;
-            $bps = array_sum($this->flows[$data['device']]['bits']) / count($this->flows[$data['device']]['bits']);
+            $interval = $mt - $this->flows[$data['device']]['start'];
+            unset($this->flows[$data['device']]['start']);
+
+            $flowps = count($this->flows[$data['device']]['bits']) / $interval;
+            $bps = array_sum($this->flows[$data['device']]['bits']) / $interval;
             $mbps = $bps / pow(1024, 2);
 
-            printf("%s: %0.2f Mb/s\t%s Flows/s\n", $data['device'], $mbps, $flowps);
+            printf("%-12s %-15s %-15s %6.2f Mb/s %5d fps\n",
+                $data['device'],
+                $data['input_port'],
+                $data['output_port'],
+                $mbps,
+                $flowps);
+
 
             $this->collect = true;
 
@@ -122,6 +131,18 @@
             return true;
         }
 
+        private function filterPort($data)
+        {
+            if (!isset($this->options['interface']))
+                return true;
+
+            $interfaceParts = explode(':', $this->options['interface']);
+
+            if (count($interfaceParts) == 2 && $data[$interfaceParts[0].'put_port'] != $interfaceParts[1])
+                return false;
+            return true;
+        }
+
         public function readInput()
         {
             printf("Collecting flows, polling interval %ss\n", self::INTERVAL);
@@ -129,6 +150,9 @@
             if ($this->options['type'] == 'Cntr')
                 printf("%-12s %-15s %13s %27s\n",
                     'IP', 'Interface', 'In', 'Out');
+            else if ($this->options['type'] == 'Flow')
+                printf("%-12s %-15s %-15s\n",
+                    'IP', 'Interface In', 'Interface Out');
 
             while ($csv = fgetcsv(STDIN)) {
                 $method = sprintf("process%s", ucfirst(strtolower($csv[0])));
