@@ -12,6 +12,8 @@ This script serves as a basic CLI parser for sflowtool to provide per interface 
 
     --device            IP address of sflow sender
     --interface         Interface name as reported by sflow (often the SNMP idx)
+    --json              Output data in JSON format (after filtering)
+    --dump              Output data in JSON format (before filtering)
 
 ##Examples
 

@@ -13,7 +13,7 @@
 
         public function __construct()
         {
-            $this->options = getopt('', [ 'device:', 'interface:', 'type:' ]);
+            $this->options = getopt('', [ 'device:', 'interface:', 'type:', 'json', 'dump' ]);
 
             if (!isset($this->options['type'])) {
                 printf("Error: --type is required (flow|cntr)\n");
@@ -32,11 +32,17 @@
             $data = array_combine($keys, $values);
             $data['time'] = time();
 
+            if (isset($this->options['dump']))
+                return $this->json($data);
+
             if (!$this->filterDevice($data))
                 return;
 
             if (!$this->filterInterface($data))
                 return;
+
+            if (isset($this->options['json']))
+                return $this->json($data);
 
             $key = $data['device'].$data['interface'];
 
@@ -67,17 +73,35 @@
             return;
         }
 
-        private function processFlow($values)
+        private function parseFlow($values)
         {
             $keys = [ 'device', 'input_port', 'output_port', 'src_mac', 'dst_mac', 'ethernet_type', 'in_vlan', 'out_vlan', 'src_ip', 'dst_ip', 'ip_protocol', 'ip_tos', 'ip_ttl', 'src_port_or_icmp_type', 'dst_port_or_icmp_code', 'tcp_flags', 'packet_size', 'ip_size', 'sampling_rate' ];
 
             $data = array_combine($keys, $values);
+
+            return $data;
+        }
+
+        private function json($data)
+        {
+            echo json_encode($data, JSON_PRETTY_PRINT);
+        }
+
+        private function processFlow($values)
+        {
+            $data = $this->parseFlow($values);
+
+            if (isset($this->options['dump']))
+                return $this->json($data);
 
             if (!isset($this->flows[$data['device']]))
                 $this->flows[$data['device']] = [ 'bits' => [] ];
 
             if (!$this->filterDevice($data) || !$this->filterFlow($data) || !$this->filterPort($data))
                 return;
+
+            if (isset($this->options['json']))
+                return $this->json($data);
 
             $mt = microtime(true);
 
@@ -147,12 +171,14 @@
         {
             printf("Collecting flows, polling interval %ss\n", self::INTERVAL);
 
-            if ($this->options['type'] == 'Cntr')
-                printf("%-12s %-15s %13s %27s\n",
-                    'IP', 'Interface', 'In', 'Out');
-            else if ($this->options['type'] == 'Flow')
-                printf("%-12s %-15s %-15s\n",
-                    'IP', 'Interface In', 'Interface Out');
+            if (!isset($this->options['dump'] && isset($this->options['json'])) {
+                if ($this->options['type'] == 'Cntr')
+                    printf("%-12s %-15s %13s %27s\n",
+                        'IP', 'Interface', 'In', 'Out');
+                else if ($this->options['type'] == 'Flow')
+                    printf("%-12s %-15s %-15s\n",
+                        'IP', 'Interface In', 'Interface Out');
+            }
 
             while ($csv = fgetcsv(STDIN)) {
                 $method = sprintf("process%s", ucfirst(strtolower($csv[0])));
@@ -170,4 +196,5 @@
     $sflow->readInput();
 
     exit;
+
 
