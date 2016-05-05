@@ -13,7 +13,7 @@
 
         public function __construct()
         {
-            $this->options = getopt('', [ 'device:', 'interface:', 'type:', 'json', 'dump' ]);
+            $this->options = getopt('', [ 'filter:', 'type:', 'json', 'dump' ]);
 
             if (!isset($this->options['type'])) {
                 printf("Error: --type is required (flow|cntr)\n");
@@ -35,10 +35,7 @@
             if (isset($this->options['dump']))
                 return $this->json($data);
 
-            if (!$this->filterDevice($data))
-                return;
-
-            if (!$this->filterInterface($data))
+            if ($this->filter($data))
                 return;
 
             if (isset($this->options['json']))
@@ -97,7 +94,7 @@
             if (!isset($this->flows[$data['device']]))
                 $this->flows[$data['device']] = [ 'bits' => [] ];
 
-            if (!$this->filterDevice($data) || !$this->filterFlow($data) || !$this->filterPort($data))
+            if ($this->filter($data) || $this->filterFlow($data))
                 return;
 
             if (isset($this->options['json']))
@@ -137,33 +134,29 @@
         {
             if (preg_match('/^(172\.16|10)\.*/', $data['src_ip']) ||
                 preg_match('/^(172\.16|10)\.*/', $data['dst_ip']))
-                return false;
-            return true;
-        }
-
-        private function filterDevice($data)
-        {
-            if (isset($this->options['device']) && $data['device'] != $this->options['device'])
-                return false;
-            return true;
-        }
-
-        private function filterInterface($data)
-        {
-            if (isset($this->options['interface']) && $data['interface'] != $this->options['interface'])
-                return false;
-            return true;
-        }
-
-        private function filterPort($data)
-        {
-            if (!isset($this->options['interface']))
                 return true;
+            return false;
+        }
 
-            $interfaceParts = explode(':', $this->options['interface']);
-
-            if (count($interfaceParts) == 2 && $data[$interfaceParts[0].'put_port'] != $interfaceParts[1])
+        private function filter($data)
+        {
+            if (!isset($this->options['filter']))
                 return false;
+
+            $filters = explode(',', $this->options['filter']);
+            $matches = 0;
+
+            foreach ($filters as $filter) {
+                $terms = explode(':', $filter);
+                if (count($terms) == 2 && isset($data[$terms[0]])) {
+                    if ($data[$terms[0]] == $terms[1])
+                        $matches++;
+                }
+            }
+
+            if ($matches == count($filters))
+                return false;
+
             return true;
         }
 
@@ -196,5 +189,6 @@
     $sflow->readInput();
 
     exit;
+
 
 
