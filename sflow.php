@@ -171,7 +171,7 @@
         {
             printf("Collecting flows, polling interval %ss\n", self::INTERVAL);
 
-            if (!isset($this->options['dump']) && isset($this->options['json'])) {
+            if (!isset($this->options['dump']) && !isset($this->options['json'])) {
                 if ($this->options['type'] == 'Cntr')
                     printf("%-12s %-15s %13s %27s\n",
                         'IP', 'Interface', 'In', 'Out');
