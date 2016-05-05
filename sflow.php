@@ -148,11 +148,15 @@
 
             foreach ($filters as $filter) {
                 $terms = explode(':', $filter);
-                $negate = (strpos($filter, "!") !== false) ? true : false;
+                $negate = (strpos($terms[1], "!") !== false) ? true : false;
+                if ($negate)
+                    $terms[1] = str_replace('!', '', $terms[1]);
+
                 if (count($terms) == 2 && isset($data[$terms[0]])) {
-                    if ($data[$terms[0]] == $terms[1] && !$negate)
+                    $regex = sprintf('/%s/', $terms[1]);
+                    if (preg_match($regex, $data[$terms[0]]) && !$negate)
                         $matches++;
-                    else if ($data[$terms[0]] != $terms[1] && $negate)
+                    else if (!preg_match($regex, $data[$terms[0]]) && $negate)
                         $matches++;
                 }
             }
