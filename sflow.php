@@ -148,8 +148,11 @@
 
             foreach ($filters as $filter) {
                 $terms = explode(':', $filter);
+                $negate = (strpos($filter, "!") !== false) ? true : false;
                 if (count($terms) == 2 && isset($data[$terms[0]])) {
-                    if ($data[$terms[0]] == $terms[1])
+                    if ($data[$terms[0]] == $terms[1] && !$negate)
+                        $matches++;
+                    else if ($data[$terms[0]] != $terms[1] && $negate)
                         $matches++;
                 }
             }
