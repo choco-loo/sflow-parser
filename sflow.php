@@ -84,7 +84,7 @@
 
         private function json($data)
         {
-            printf("%s\n", json_encode($data, JSON_PRETTY_PRINT));
+            printf("%s\n", preg_replace('#^(\{|\})#m', '', json_encode($data, JSON_PRETTY_PRINT)));
         }
 
         private function processFlow($values)
