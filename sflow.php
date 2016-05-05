@@ -84,7 +84,7 @@
 
         private function json($data)
         {
-            echo json_encode($data, JSON_PRETTY_PRINT);
+            printf("%s\n", json_encode($data, JSON_PRETTY_PRINT));
         }
 
         private function processFlow($values)
